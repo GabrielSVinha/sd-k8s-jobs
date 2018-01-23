@@ -3,9 +3,10 @@ from hashlib import sha256
 from random import choice, randint
 from string import ascii_letters
 from string import digits
-import sys
-
+import os
+import socket
 import rediswq
+import codify 
 
 
 LETTERS = ascii_letters + digits
@@ -16,7 +17,7 @@ MAX_TRIES = 10000000
 LEASE_SECS = 30
 # NOTE(clenimar): for some reason the Job pods cannot resolve the redis name.
 # That's bit weird, but that's life. Hardcode it. (And fix it later, of course)
-HOST = "10.35.252.5"
+HOST = "10.59.245.27"
 
 
 #FIXME(clenimar): implement this properly. No queue as an argument, dude.
@@ -54,12 +55,14 @@ def find(prefix, q):
 
 def run():
     q = rediswq.RedisWQ(name="job", host=HOST)
+    enc = codify.Encoder()
+    APP_KEY = os.getenv("APP_KEY")
     print("Worker with sessionID: " + q.sessionID())
     print("Initial queue state: empty=" + str(q.empty()))
     while not q.empty():
         item = q.lease(lease_secs=LEASE_SECS, block=True, timeout=2)
         if item is not None:
-            prefix = item.decode("utf=8")
+            prefix = enc.encode(APP_KEY, item.decode("utf=8"))
             if find(prefix, q):
                 q.complete(item)
         else:

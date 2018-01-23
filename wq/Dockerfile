@@ -12,3 +12,4 @@ RUN apk --update add --virtual build-dependencies py-pip \
 
 ADD finddahash.py /
 ADD rediswq.py /
+ADD codify.py /

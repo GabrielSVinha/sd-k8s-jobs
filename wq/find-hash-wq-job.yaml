@@ -10,6 +10,14 @@ spec:
     spec:
       containers:
       - name: find-hash-wq
-        image: gcr.io/winter-legend-167417/find-hash-wq
+        image: docker.io/vinhags/find-the-hash-wq:encrypted
         command: ["python", "finddahash.py"]
+        env:
+        - name: APP_KEY
+          valueFrom:
+            secretKeyRef:
+              name: appkey
+              key: password.txt
+        imagePullPolicy: Always
       restartPolicy: OnFailure
+      

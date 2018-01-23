@@ -22,6 +22,15 @@ Upload it:
 # docker push <username>/find-the-hash-wq
 ```
 
+### Setup cryptography key
+
+Edit the file `password.txt` with your key of preference, this will be used to decrypt data in the datastore.
+
+Then, create a secret with:
+```
+kubectl create secret generic appkey --from-file=./password.txt
+```
+
 ### Setup redis
 All the items to be processed are stored in a work queue stored in a redis database through a simple queue interface written in Python. If you don't have a running redis instace, you can set it up by running:
 
@@ -34,7 +43,7 @@ Figure out the address on which redis is running by running `kubectl get service
 
 ### Fill your queue with work
 
-You can use an interactive Pod to fill redis with prefixes to be processed:
+You can use an interactive Pod to fill redis with prefixes to be processed, remeber that data need to be **Encrypted** to make some sense after it:
 
 ```
 $ kubectl run -i --tty temp --image redis --command "/bin/sh"
@@ -44,20 +53,22 @@ Hit enter for command prompt
 Then:
 ```
 # redis-cli -h redis
-redis:6379> rpush job "0ce"
+redis:6379> rpush job "kcfS"
 (integer) 1
-redis:6379> rpush job "babaca"
+redis:6379> rpush job "w8XPytGS"
 (integer) 2
-redis:6379> rpush job "00000"
+redis:6379> rpush job "kZSdmZ4="
 (integer) 3
 ```
 You can check what's on the queue by running:
 ```
 redis:6379> lrange job 0 -1
-1) "0ce"
-2) "babaca"
-3) "00000"
+1) "kcfS"
+2) "w8XPytGS"
+3) "kZSdmZ4="
 ```
+
+(I used the key `admin123` to generate the above strings, I also passed this key to the secret created above)
 
 ### Create the Job
 Now open `find-hash-wq-job.yaml` and change the Job definition accordingly. Take a look at the official documentation in order to understand all the fields and what they do.
@@ -77,6 +88,20 @@ kubectl get pods -a
 Note that the Pods that complete the task successfully are shown as "Completed". You can see their outputs (i.e. the results) at any time by typing:
 ```
 kubectl logs <pod-name>
+```
+
+After processing the first value, output should look like this:
+
+```
+looking for a hash whose prefix is 0ce
+.
+.
+.
+looking for a hash whose prefix is babaca
+.
+.
+.
+looking for a hash whose prefix is 00000
 ```
 
 As Pods are volatile, all the complete work is stored in the `job:results` queue. Check them by going into the interactive redis Pod and running:
